@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { optimizeOutputImage } from '@/lib/imageProcessing';
-import { removeBackgroundWithReplicate } from '@/lib/replicate';
+import { removeBackground } from '@/lib/replicate';
 import { limiter } from '@/lib/concurrency';
 
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
@@ -28,9 +28,9 @@ export async function POST(request: Request) {
     }
 
     const inputBuffer = Buffer.from(await file.arrayBuffer());
-    const inputDataUrl = fileToDataUrl(inputBuffer, file.type);
+    const inputImageUrl = fileToDataUrl(inputBuffer, file.type);
 
-    const resultUrl = await limiter.run(() => removeBackgroundWithReplicate(inputDataUrl));
+    const resultUrl = await limiter.run(() => removeBackground(inputImageUrl));
     const outputResponse = await fetch(resultUrl);
 
     if (!outputResponse.ok) {

@@ -1,80 +1,37 @@
-const REPLICATE_API_BASE = 'https://api.replicate.com/v1';
-const MODEL_VERSION = 'briaai/rmbg-1.4';
+import Replicate from 'replicate';
 
-interface PredictionResponse {
-  id: string;
-  status: string;
-  output?: string | string[];
-  error?: string;
-}
+const MODEL_VERSION = 'cjwbw/rembg:34bd50c3c0d6d5b3f2c41e98b5eb2d646f092d137cee66216c0daac82466e0f1';
 
-function getToken() {
-  const token = process.env.REPLICATE_API_TOKEN;
-  if (!token) {
+const replicate = new Replicate({
+  auth: process.env.REPLICATE_API_TOKEN
+});
+
+export async function removeBackground(imageUrl: string): Promise<string> {
+  if (!process.env.REPLICATE_API_TOKEN) {
     throw new Error('Missing REPLICATE_API_TOKEN');
   }
-  return token;
-}
 
-async function createPrediction(imageDataUrl: string): Promise<PredictionResponse> {
-  const response = await fetch(`${REPLICATE_API_BASE}/models/${MODEL_VERSION}/predictions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getToken()}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      input: { image: imageDataUrl }
-    })
-  });
+  try {
+    const output = await replicate.run(MODEL_VERSION, {
+      input: {
+        image: imageUrl
+      }
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Failed to create prediction: ${text}`);
-  }
-
-  return (await response.json()) as PredictionResponse;
-}
-
-async function getPrediction(id: string): Promise<PredictionResponse> {
-  const response = await fetch(`${REPLICATE_API_BASE}/predictions/${id}`, {
-    headers: {
-      Authorization: `Bearer ${getToken()}`
+    if (Array.isArray(output)) {
+      if (!output[0] || typeof output[0] !== 'string') {
+        throw new Error('Replicate returned an empty output array');
+      }
+      return output[0];
     }
-  });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Failed to fetch prediction: ${text}`);
+    if (typeof output === 'string') {
+      return output;
+    }
+
+    throw new Error('Replicate returned an unexpected output format');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown Replicate error';
+    throw new Error(`Replicate background removal failed: ${message}`);
   }
-
-  return (await response.json()) as PredictionResponse;
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-export async function removeBackgroundWithReplicate(imageDataUrl: string): Promise<string> {
-  const created = await createPrediction(imageDataUrl);
-  let prediction = created;
-
-  while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
-    await sleep(1500);
-    prediction = await getPrediction(created.id);
-  }
-
-  if (prediction.status !== 'succeeded') {
-    throw new Error(prediction.error || 'Background removal failed');
-  }
-
-  if (Array.isArray(prediction.output)) {
-    return prediction.output[0];
-  }
-
-  if (!prediction.output) {
-    throw new Error('No output image returned from Replicate');
-  }
-
-  return prediction.output;
 }

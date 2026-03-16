@@ -1,6 +1,6 @@
 # AI Background Remover
 
-A production-ready Next.js app that removes image backgrounds using the `briaai/rmbg-1.4` model on Replicate.
+A production-ready Next.js app that removes image backgrounds using the `cjwbw/rembg` model on Replicate.
 
 ## Features
 
