@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  @apply min-h-screen bg-background text-slate-100 antialiased;
+  background-image: radial-gradient(circle at top, rgba(110, 139, 255, 0.2), rgba(9, 10, 15, 0.95) 45%);
+}
+
+.glass-card {
+  @apply border border-white/10 bg-card/70 backdrop-blur-xl;
+}
